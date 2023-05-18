@@ -5,7 +5,6 @@ import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Button } from './Button/Button';
 import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
-import css from './App.module.css';
 
 export class App extends Component {
   state = {
@@ -15,6 +14,8 @@ export class App extends Component {
     isLoading: false,
     error: '',
     isModal: false,
+    totalImages: 0,
+    active: '',
   };
 
   async componentDidUpdate(_, prevState) {
@@ -27,9 +28,7 @@ export class App extends Component {
         const images = await pixabayApi(query, page);
 
         // достаем из пришедшего объекта данных массив объектов с данными изображений
-        const { hits } = images;
-        const { totalHits } = images;
-        const { total } = images;
+        const { hits, totalHits } = images;
 
         // если на введенный запрос не существует данных, то выводим сообщение об этом
         if (hits.length === 0) {
@@ -48,8 +47,7 @@ export class App extends Component {
         this.setState(prevState => {
           return {
             imgData: [...prevState.imgData, ...newHits],
-            totalImage: totalHits,
-            total: total,
+            totalImages: totalHits,
           };
         });
       } catch (error) {
@@ -68,7 +66,7 @@ export class App extends Component {
       alert('Введите новое значение для поиска');
       return;
     }
-    this.setState({ query: valueInput, imgData: [], page: 1, totalImage: 0 });
+    this.setState({ query: valueInput, imgData: [], page: 1, totalImages: 0 });
   };
 
   // при клике на кнопку загрузить еще увеличивает нумерацию страницы
@@ -80,7 +78,7 @@ export class App extends Component {
     });
   };
 
-  toggleModal = largeImageURL => {
+  toggleModal = (largeImageURL = '') => {
     this.setState(state => ({
       isModal: !state.isModal,
       active: largeImageURL,
@@ -88,16 +86,8 @@ export class App extends Component {
   };
 
   render() {
-    const {
-      imgData,
-      page,
-      totalImage,
-      total,
-      isLoading,
-      error,
-      isModal,
-      active,
-    } = this.state;
+    const { imgData, totalImages, isLoading, error, isModal, active } =
+      this.state;
 
     return (
       <>
@@ -113,26 +103,13 @@ export class App extends Component {
           <ImageGallery imagesData={imgData} onClick={this.toggleModal} />
         )}
 
-        {/* если в массиве с изображениями есть данные и суммарные пришедшие бесплатные 
-        картинки не превышают общее количество бесплатных картинок
-        то рендерем кнопку, а также когда общее количество дотупных картинок больше тех что нужно вывести*/}
-        {imgData.length > 0 &&
-          imgData.length * page <= totalImage &&
-          imgData.length * page < total && (
-            <Button onClick={this.btnLoadMore} />
-          )}
-
-        {isModal && (
-          <Modal active={active} onClick={this.toggleModal}>
-            <button
-              className={css.modal_button}
-              type="button"
-              onClick={this.toggleModal}
-            >
-              Close image
-            </button>
-          </Modal>
+        {/* пока не происходит загрузка изображений и длина массива с изображениями не равна суммарным пришедшие бесплатным 
+        картинкам, то рендерем кнопку*/}
+        {!isLoading && imgData.length !== totalImages && (
+          <Button onClick={this.btnLoadMore} />
         )}
+
+        {isModal && <Modal active={active} onClick={this.toggleModal} />}
       </>
     );
   }
